@@ -75,7 +75,7 @@ function checkLines() {
         if (board[r].every(cell => cell === 1)) {
             board.splice(r, 1);
             board.unshift(Array(COLUMNS).fill(0));
-            score += 100; // 한 줄을 채우면 100점 증가
+            score += 10; // 한 줄을 채우면 100점 증가
             document.getElementById("score").textContent = `점수: ${score}`;
         }
     }
