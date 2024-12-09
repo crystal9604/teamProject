@@ -7,9 +7,18 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="title">테트리스</div>
-    <canvas id="gameCanvas" width="300" height="600"></canvas>
-    <div class="score" id="score">점수: 0</div>
+    <h2 id="title">테트리스 게임</h2>
+    <div id="game"></div>
+    <div id="info">
+        <h2>다음 블럭</h2>
+        <canvas id="next" width="120" height="120" style="background: #f0f0f0;"></canvas>
+        <h3>Score: <span id="score">0</span></h3>
+        <h3>Combo: <span id="combo">0</span></h3>
+    </div>
+    <div id="overlay">
+        <h2>게임 끝!</h2>
+        <button onclick="restartGame()">Restart</button>
+    </div>
     <div class="controls">
         <p>조작 방법:</p>
         <p><span class="control-key">왼쪽/오른쪽 화살표</span>: 이동</p>
