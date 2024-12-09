@@ -198,15 +198,15 @@ function checkLineClear() {
         }
     }
     if (linesCleared > 0) {
-        score += 100 * linesCleared + 10 * linesCleared * combo;
+        score += 10 * linesCleared + 10 * linesCleared * combo;
         combo++;
     } else {
         combo = 0;
     }
     scoreDisplay.textContent = score;
     comboDisplay.textContent = combo;
-    if (score >= 1000 && gameSpeed > 200) {
-        gameSpeed = Math.max(200, gameSpeed / 1.5);
+    if (score >= 200 && score % 200 === 0 && gameSpeed > 200) {
+        gameSpeed = Math.max(200, gameSpeed / 1.2);
         clearInterval(interval);
         interval = setInterval(moveDown, gameSpeed);
     }
