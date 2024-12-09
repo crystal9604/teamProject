@@ -125,6 +125,11 @@ document.addEventListener("keydown", function(event) {
         if (isValidMove({ shape: rotatedPiece, color: currentPiece.color }, pieceRow, pieceCol)) {
             currentPiece.shape = rotatedPiece;
         }
+    } else if (event.key === " ") { // 스페이스바로 즉시 내려가기
+        while (isValidMove(currentPiece, pieceRow + 1, pieceCol)) {
+            pieceRow++;
+        }
+        placePiece(); // 더 이상 내려갈 수 없을 때 블록을 고정
     }
 });
 
@@ -143,16 +148,30 @@ function resetGame() {
     document.getElementById("score").textContent = `점수: ${score}`;
 }
 
+// 자동 하강 관련 변수
+let lastMoveTime = 0;
+let gameSpeed = 1000;  // 자동 하강 속도 (밀리초 단위)
+
 // 게임 루프
-function gameLoop() {
-    if (isValidMove(currentPiece, pieceRow + 1, pieceCol)) {
-        pieceRow++;
-    } else {
-        placePiece();
+function gameLoop(timestamp) {
+    const deltaTime = timestamp - lastMoveTime;
+
+    // 일정 시간이 지난 후에 블록이 자동으로 한 칸 내려가도록 함
+    if (deltaTime > gameSpeed) {
+        if (isValidMove(currentPiece, pieceRow + 1, pieceCol)) {
+            pieceRow++;
+        } else {
+            placePiece(); // 더 이상 내려갈 수 없으면 블록을 고정
+        }
+        lastMoveTime = timestamp;  // 타이머 리셋
     }
+
+    // 게임판 그리기 및 블록 그리기
     drawBoard();
     drawPiece();
-    setTimeout(gameLoop, 500); // 0.5초마다 게임 루프 실행
+
+    // 게임 루프 계속 실행
+    requestAnimationFrame(gameLoop);
 }
 
-gameLoop();
+requestAnimationFrame(gameLoop);
