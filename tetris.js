@@ -33,6 +33,7 @@ const COLORS = [
 let currentPiece = getRandomPiece();
 let pieceRow = 0;
 let pieceCol = Math.floor(COLUMNS / 2) - Math.floor(currentPiece.shape[0].length / 2);
+let gameOver = false;  // 게임 종료 여부
 
 // 랜덤한 테트리스 블록을 반환
 function getRandomPiece() {
@@ -67,6 +68,12 @@ function placePiece() {
     currentPiece = getRandomPiece();
     pieceRow = 0;
     pieceCol = Math.floor(COLUMNS / 2) - Math.floor(currentPiece.shape[0].length / 2);
+
+    // 게임 종료 체크
+    if (!isValidMove(currentPiece, pieceRow, pieceCol)) {
+        gameOver = true;  // 게임 오버
+        alert("게임 오버! 점수: " + score);
+    }
 }
 
 // 한 줄이 꽉 차면 삭제하고 점수 증가
@@ -108,6 +115,8 @@ function drawBoard() {
 
 // 키보드 입력 처리
 document.addEventListener("keydown", function(event) {
+    if (gameOver) return; // 게임 오버 상태에서는 키 입력 처리 안함
+
     if (event.key === "ArrowLeft") {
         if (isValidMove(currentPiece, pieceRow, pieceCol - 1)) {
             pieceCol--;
@@ -145,6 +154,7 @@ function resetGame() {
     pieceRow = 0;
     pieceCol = Math.floor(COLUMNS / 2) - Math.floor(currentPiece.shape[0].length / 2);
     score = 0;
+    gameOver = false;
     document.getElementById("score").textContent = `점수: ${score}`;
 }
 
@@ -154,6 +164,8 @@ let gameSpeed = 1000;  // 자동 하강 속도 (밀리초 단위)
 
 // 게임 루프
 function gameLoop(timestamp) {
+    if (gameOver) return; // 게임 오버 상태에서는 루프 종료
+
     const deltaTime = timestamp - lastMoveTime;
 
     // 일정 시간이 지난 후에 블록이 자동으로 한 칸 내려가도록 함
