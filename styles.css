@@ -19,7 +19,7 @@ body {
     display: grid;
     grid-template-rows: repeat(20, 30px);
     grid-template-columns: repeat(10, 30px);
-    background: url(/img/성.jpg) center/cover;
+    background: url(성.jpg) center/cover;
     position:relative;
 }
 .cell {
