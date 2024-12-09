@@ -146,6 +146,19 @@ function rotateCurrentShape() {
     drawBoard();
 }
 
+function dropToBottom() {
+    clearShape();
+    while (!checkCollision()) {
+        activePosition.y++;
+    }
+    activePosition.y--;
+    drawShape();
+    drawBoard();
+    placeShape();
+    checkLineClear();
+    spawnShape();
+}
+
 function checkCollision() {
     return activeShape.some((row, y) => {
         return row.some((cell, x) => {
@@ -230,6 +243,8 @@ document.addEventListener('keydown', (e) => {
         moveRight();
     } else if (e.key === 'ArrowUp') {
         rotateCurrentShape();
+    } else if (e.key === ' ') {
+        dropToBottom();
     }
 });
 
