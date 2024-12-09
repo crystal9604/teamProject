@@ -1,236 +1,189 @@
-const gameBoard = document.getElementById('game');
-        const nextCanvas = document.getElementById('next');
-        const scoreDisplay = document.getElementById('score');
-        const comboDisplay = document.getElementById('combo');
-        const nextCtx = nextCanvas.getContext('2d');
-        const overlay = document.getElementById('overlay');
-        
-        const ROWS = 20;
-        const COLS = 10;
-        const CELL_SIZE = 30;
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
 
-        let gameMatrix = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
-        let activeShape;
-        let activeColor;
-        let nextShape;
-        let nextColor;
-        let activePosition = { x: 0, y: 0 };
-        let score = 0;
-        let combo = 0;
-        let gameSpeed = 1000;
-        let interval;
+const ROWS = 20;
+const COLUMNS = 10;
+const BLOCK_SIZE = 30; // 각 블록 크기
+let score = 0; // 점수
 
-        const COLORS = ['#f00', '#0f0', '#00f', '#ff0', '#f0f', '#0ff', '#fff'];
-        const SHAPES = [
-            [[1, 1, 1, 1]],
-            [[1, 1], [1, 1]],
-            [[0, 1, 0], [1, 1, 1]],
-            [[1, 1, 0], [0, 1, 1]],
-            [[0, 1, 1], [1, 1, 0]]
-        ];
+// 테트리스 게임판 배열
+let board = Array.from({ length: ROWS }, () => Array(COLUMNS).fill(0));
 
-        function rotateShape(shape) {
-            return shape[0].map((_, index) => shape.map(row => row[index]).reverse());
-        }
+// 테트리스 블록 모양들
+const TETROMINOS = [
+    [[1, 1, 1], [0, 1, 0]], // T 모양
+    [[1, 1], [1, 1]],       // O 모양
+    [[1, 1, 0], [0, 1, 1]], // S 모양
+    [[0, 1, 1], [1, 1, 0]], // Z 모양
+    [[1, 0, 0], [1, 1, 1]], // L 모양
+    [[0, 0, 1], [1, 1, 1]], // J 모양
+    [[1, 1, 1, 1]]          // I 모양
+];
 
-        function drawBoard() {
-            gameBoard.innerHTML = '';
-            for (let row = 0; row < ROWS; row++) {
-                for (let col = 0; col < COLS; col++) {
-                    const cell = document.createElement('div');
-                    cell.classList.add('cell');
-                    if (typeof gameMatrix[row][col] === 'string') {
-                        cell.style.background = gameMatrix[row][col];
-                        cell.classList.add('active');
-                    }
-                    gameBoard.appendChild(cell);
-                }
-            }
-        }
+const COLORS = [
+    "#ff6347", // T
+    "#f39c12", // O
+    "#2ecc71", // S
+    "#e74c3c", // Z
+    "#3498db", // L
+    "#9b59b6", // J
+    "#1abc9c"  // I
+];
 
-        function drawShape() {
-            activeShape.forEach((row, y) => {
-                row.forEach((cell, x) => {
-                    if (cell) {
-                        const posY = activePosition.y + y;
-                        const posX = activePosition.x + x;
-                        if (posY >= 0 && posY < ROWS && posX >= 0 && posX < COLS) {
-                            gameMatrix[posY][posX] = activeColor;
-                        }
-                    }
-                });
-            });
-        }
+let currentPiece = getRandomPiece();
+let pieceRow = 0;
+let pieceCol = Math.floor(COLUMNS / 2) - Math.floor(currentPiece.shape[0].length / 2);
+let gameOver = false;  // 게임 종료 여부
 
-        function clearShape() {
-            activeShape.forEach((row, y) => {
-                row.forEach((cell, x) => {
-                    if (cell) {
-                        const posY = activePosition.y + y;
-                        const posX = activePosition.x + x;
-                        if (posY >= 0 && posY < ROWS && posX >= 0 && posX < COLS) {
-                            gameMatrix[posY][posX] = 0;
-                        }
-                    }
-                });
-            });
-        }
+// 랜덤한 테트리스 블록을 반환
+function getRandomPiece() {
+    let index = Math.floor(Math.random() * TETROMINOS.length);
+    return { shape: TETROMINOS[index], color: COLORS[index] };
+}
 
-        function drawNextShape() {
-            nextCtx.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
-            nextShape.forEach((row, y) => {
-                row.forEach((cell, x) => {
-                    if (cell) {
-                        nextCtx.fillStyle = nextColor;
-                        nextCtx.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
-                        nextCtx.strokeRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
-                    }
-                });
-            });
-        }
-
-        function spawnShape() {
-            activeShape = nextShape || SHAPES[Math.floor(Math.random() * SHAPES.length)];
-            activeColor = nextColor || COLORS[Math.floor(Math.random() * COLORS.length)];
-            nextShape = SHAPES[Math.floor(Math.random() * SHAPES.length)];
-            nextColor = COLORS[Math.floor(Math.random() * COLORS.length)];
-            activePosition = { x: Math.floor(COLS / 2) - Math.floor(activeShape[0].length / 2), y: 0 };
-            drawNextShape();
-            if (checkCollision()) {
-                gameOver();
-            }
-        }
-
-        function moveDown() {
-            clearShape();
-            activePosition.y++;
-            if (checkCollision()) {
-                activePosition.y--;
-                placeShape();
-                checkLineClear();
-                spawnShape();
-            }
-            drawShape();
-            drawBoard();
-        }
-
-        function moveLeft() {
-            clearShape();
-            activePosition.x--;
-            if (checkCollision()) {
-                activePosition.x++;
-            }
-            drawShape();
-            drawBoard();
-        }
-
-        function moveRight() {
-            clearShape();
-            activePosition.x++;
-            if (checkCollision()) {
-                activePosition.x--;
-            }
-            drawShape();
-            drawBoard();
-        }
-
-        function rotateCurrentShape() {
-            clearShape();
-            const rotatedShape = rotateShape(activeShape);
-            const originalShape = activeShape;
-            activeShape = rotatedShape;
-            if (checkCollision()) {
-                activeShape = originalShape;
-            }
-            drawShape();
-            drawBoard();
-        }
-
-        function checkCollision() {
-            return activeShape.some((row, y) => {
-                return row.some((cell, x) => {
-                    if (cell) {
-                        const posY = activePosition.y + y;
-                        const posX = activePosition.x + x;
-                        if (posY >= ROWS || posX < 0 || posX >= COLS || (gameMatrix[posY] && typeof gameMatrix[posY][posX] === 'string')) {
-                            return true;
-                        }
-                    }
+// 블록이 게임판에 들어맞는지 확인
+function isValidMove(piece, row, col) {
+    for (let r = 0; r < piece.shape.length; r++) {
+        for (let c = 0; c < piece.shape[r].length; c++) {
+            if (piece.shape[r][c]) {
+                if (row + r >= ROWS || col + c < 0 || col + c >= COLUMNS || board[row + r][col + c]) {
                     return false;
-                });
-            });
-        }
-
-        function placeShape() {
-            activeShape.forEach((row, y) => {
-                row.forEach((cell, x) => {
-                    if (cell) {
-                        const posY = activePosition.y + y;
-                        const posX = activePosition.x + x;
-                        if (posY >= 0 && posY < ROWS && posX >= 0 && posX < COLS) {
-                            gameMatrix[posY][posX] = activeColor;
-                        }
-                    }
-                });
-            });
-        }
-
-        function checkLineClear() {
-            let linesCleared = 0;
-            for (let row = 0; row < ROWS; row++) {
-                if (gameMatrix[row].every(cell => typeof cell === 'string')) {
-                    gameMatrix.splice(row, 1);
-                    gameMatrix.unshift(Array(COLS).fill(0));
-                    linesCleared++;
                 }
             }
-            if (linesCleared > 0) {
-                score += 100 * linesCleared + 10 * linesCleared * combo;
-                combo++;
-            } else {
-                combo = 0;
+        }
+    }
+    return true;
+}
+
+// 블록을 게임판에 고정시키기
+function placePiece() {
+    for (let r = 0; r < currentPiece.shape.length; r++) {
+        for (let c = 0; c < currentPiece.shape[r].length; c++) {
+            if (currentPiece.shape[r][c]) {
+                board[pieceRow + r][pieceCol + c] = 1;
             }
-            scoreDisplay.textContent = score;
-            comboDisplay.textContent = combo;
-            if (score >= 1000 && gameSpeed > 200) {
-                gameSpeed = Math.max(200, gameSpeed / 1.5);
-                clearInterval(interval);
-                interval = setInterval(moveDown, gameSpeed);
+        }
+    }
+    checkLines();
+    currentPiece = getRandomPiece();
+    pieceRow = 0;
+    pieceCol = Math.floor(COLUMNS / 2) - Math.floor(currentPiece.shape[0].length / 2);
+
+    // 게임 종료 체크
+    if (!isValidMove(currentPiece, pieceRow, pieceCol)) {
+        gameOver = true;  // 게임 오버
+        alert("게임 오버! 점수: " + score);
+    }
+}
+
+// 한 줄이 꽉 차면 삭제하고 점수 증가
+function checkLines() {
+    for (let r = ROWS - 1; r >= 0; r--) {
+        if (board[r].every(cell => cell === 1)) {
+            board.splice(r, 1);
+            board.unshift(Array(COLUMNS).fill(0));
+            score += 100; // 한 줄을 채우면 100점 증가
+            document.getElementById("score").textContent = `점수: ${score}`;
+        }
+    }
+}
+
+// 블록을 그리기
+function drawPiece() {
+    ctx.fillStyle = currentPiece.color;
+    for (let r = 0; r < currentPiece.shape.length; r++) {
+        for (let c = 0; c < currentPiece.shape[r].length; c++) {
+            if (currentPiece.shape[r][c]) {
+                ctx.fillRect((pieceCol + c) * BLOCK_SIZE, (pieceRow + r) * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
             }
         }
+    }
+}
 
-        function gameOver() {
-            clearInterval(interval);
-            overlay.classList.add('visible');
-        }
-
-        function restartGame() {
-            gameMatrix = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
-            score = 0;
-            combo = 0;
-            scoreDisplay.textContent = score;
-            comboDisplay.textContent = combo;
-            overlay.classList.remove('visible');
-            gameSpeed = 1000;
-            startGame();
-        }
-
-        function startGame() {
-            spawnShape();
-            drawBoard();
-            interval = setInterval(moveDown, gameSpeed);
-        }
-
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowDown') {
-                moveDown();
-            } else if (e.key === 'ArrowLeft') {
-                moveLeft();
-            } else if (e.key === 'ArrowRight') {
-                moveRight();
-            } else if (e.key === 'ArrowUp') {
-                rotateCurrentShape();
+// 게임판을 그리기
+function drawBoard() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height); // 화면을 지움
+    for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLUMNS; c++) {
+            if (board[r][c]) {
+                ctx.fillStyle = "#fff";
+                ctx.fillRect(c * BLOCK_SIZE, r * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
             }
-        });
+        }
+    }
+}
 
-        startGame();
+// 키보드 입력 처리
+document.addEventListener("keydown", function(event) {
+    if (gameOver) return; // 게임 오버 상태에서는 키 입력 처리 안함
+
+    if (event.key === "ArrowLeft") {
+        if (isValidMove(currentPiece, pieceRow, pieceCol - 1)) {
+            pieceCol--;
+        }
+    } else if (event.key === "ArrowRight") {
+        if (isValidMove(currentPiece, pieceRow, pieceCol + 1)) {
+            pieceCol++;
+        }
+    } else if (event.key === "ArrowDown") {
+        if (isValidMove(currentPiece, pieceRow + 1, pieceCol)) {
+            pieceRow++;
+        }
+    } else if (event.key === "ArrowUp") {
+        let rotatedPiece = rotatePiece(currentPiece.shape);
+        if (isValidMove({ shape: rotatedPiece, color: currentPiece.color }, pieceRow, pieceCol)) {
+            currentPiece.shape = rotatedPiece;
+        }
+    } else if (event.key === " ") { // 스페이스바로 즉시 내려가기
+        while (isValidMove(currentPiece, pieceRow + 1, pieceCol)) {
+            pieceRow++;
+        }
+        placePiece(); // 더 이상 내려갈 수 없을 때 블록을 고정
+    }
+});
+
+// 블록 회전 함수
+function rotatePiece(piece) {
+    return piece[0].map((_, index) => piece.map(row => row[index])).reverse();
+}
+
+// 게임 초기화
+function resetGame() {
+    board = Array.from({ length: ROWS }, () => Array(COLUMNS).fill(0));
+    currentPiece = getRandomPiece();
+    pieceRow = 0;
+    pieceCol = Math.floor(COLUMNS / 2) - Math.floor(currentPiece.shape[0].length / 2);
+    score = 0;
+    gameOver = false;
+    document.getElementById("score").textContent = `점수: ${score}`;
+}
+
+// 자동 하강 관련 변수
+let lastMoveTime = 0;
+let gameSpeed = 1000;  // 자동 하강 속도 (밀리초 단위)
+
+// 게임 루프
+function gameLoop(timestamp) {
+    if (gameOver) return; // 게임 오버 상태에서는 루프 종료
+
+    const deltaTime = timestamp - lastMoveTime;
+
+    // 일정 시간이 지난 후에 블록이 자동으로 한 칸 내려가도록 함
+    if (deltaTime > gameSpeed) {
+        if (isValidMove(currentPiece, pieceRow + 1, pieceCol)) {
+            pieceRow++;
+        } else {
+            placePiece(); // 더 이상 내려갈 수 없으면 블록을 고정
+        }
+        lastMoveTime = timestamp;  // 타이머 리셋
+    }
+
+    // 게임판 그리기 및 블록 그리기
+    drawBoard();
+    drawPiece();
+
+    // 게임 루프 계속 실행
+    requestAnimationFrame(gameLoop);
+}
+
+requestAnimationFrame(gameLoop);
